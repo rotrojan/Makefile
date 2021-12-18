@@ -6,7 +6,7 @@
 #    By: rotrojan <marvin@42.fr>                    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2021/10/21 21:06:11 by rotrojan          #+#    #+#              #
-#    Updated: 2021/12/18 23:13:42 by bigo             ###   ########.fr        #
+#    Updated: 2021/12/18 23:48:45 by bigo             ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -62,6 +62,7 @@ ESC_STOP = \033[0m
 
 COMPILING_PRINTED = 0
 VARIABLES_PRINTED = 0
+VARIABLES_INTERLINE_PRINTED = 0
 PRINT_INTERLINE = printf '$(YELLOW)$(BOLD)================================================================================$(ESC_STOP)\n'
 
 all: display_variables $(NAME)
@@ -76,7 +77,9 @@ $(NAME): $(OBJS)
 
 $(OBJS): $(OBJS_DIR)/%.o: %.cpp $(OBJS_DIR)/debug$(DEBUG) $(OBJS_DIR)/sanitize$(SANITIZE) | $(OBJS_DIR)
 	@if [ '$(COMPILING_PRINTED)' -eq '0' ]; then \
-		$(PRINT_INTERLINE); \
+		if [ '$(VARIABLES_INTERLINE_PRINTED)' -eq '0' ]; then \
+			$(PRINT_INTERLINE); \
+		fi; \
 		printf '$(BOLD)$(YELLOW)compiling sources$(ESC_STOP)\n'; \
 	fi; $(eval COMPILING_PRINTED = 1)
 	@printf '%s' $@
@@ -98,11 +101,12 @@ display_variables:
 	@if [ '$(VARIABLES_PRINTED)' -eq '0' ]; then \
 		$(PRINT_INTERLINE); \
 		printf '$(YELLOW)building $(BOLD)%s$(ESC_STOP)\n' '$(NAME)'; \
-		printf '$(YELLOW)compiler$(ESC_STOP): %s\n' '$(CXX)'; \
-		printf '$(YELLOW)compilation flags$(ESC_STOP): %s\n' '$(CXXFLAGS)'; \
-		printf '$(YELLOW)libraries$(ESC_STOP): %s\n' '$(LIBS)'; \
-		printf '$(YELLOW)linking flags$(ESC_STOP): %s\n' '$(LDFLAGS)'; \
-	fi; $(eval VARIABLES_PRINTED = 1)
+		printf '$(YELLOW)compiler:$(ESC_STOP) %s\n' '$(CXX)'; \
+		printf '$(YELLOW)compilation flags:$(ESC_STOP) %s\n' '$(CXXFLAGS)'; \
+		printf '$(YELLOW)libraries:$(ESC_STOP) %s\n' '$(LIBS)'; \
+		printf '$(YELLOW)linking flags:$(ESC_STOP) %s\n' '$(LDFLAGS)'; \
+		$(PRINT_INTERLINE); \
+	fi; $(eval VARIABLES_PRINTED = 1) $(eval VARIABLES_INTERLINE_PRINTED = 1)
 
 clean:
 	@$(RM) -r $(OBJS_DIR)
