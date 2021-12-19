@@ -6,32 +6,25 @@
 #    By: rotrojan <marvin@42.fr>                    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2021/10/21 21:06:11 by rotrojan          #+#    #+#              #
-#    Updated: 2021/12/19 02:42:46 by bigo             ###   ########.fr        #
+#    Updated: 2021/12/20 00:13:13 by bigo             ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
-NAME = abstract_class
-
-SRCS =	main.cpp		\
-		Animal.cpp		\
-		Dog.cpp			\
-		Cat.cpp			\
-		WrongCat.cpp	\
-		WrongAnimal.cpp	\
-		Brain.cpp		\
+include settings.mk
 
 OBJS = $(SRCS:%.cpp=$(OBJS_DIR)/%.o)
 DEPENDENCIES = $(OBJS:%.o=%.d)
-
-SRCS_DIR = srcs
-OBJS_DIR = .objs
-INCLUDES_DIR = includes
-
-MAKE = make
+LDFLAGS = $(LIBS:%=-L lib%)
+LDLIBS = $(LIBS:%=-l%)
+CXXFLAGS += -MMD -MP
 MAKEFLAGS += --no-print-directory
-CXX = c++
+
+# Binaries
+MAKE = make
 RM = rm -f
 MKDIR = mkdir -p
+
+# Debug variables
 DEBUG = 0
 ifeq ($(shell test -f $(OBJS_DIR)/debug1; echo $$?), 0)
 	DEBUG = 1
@@ -40,52 +33,65 @@ SANITIZE = 0
 ifeq ($(shell test -f $(OBJS_DIR)/sanitize1; echo $$?), 0)
 	SANITIZE = 1
 endif
-
-CXXFLAGS = -Wall -Wextra -Werror -MMD -MP -std=c++98 -pedantic
 ifeq ($(DEBUG), 1)
 	CXXFLAGS += -g3
 endif
 ifeq ($(SANITIZE), 1)
 	CXXFLAGS += -fsanitize=address
 endif
-LDFLAGS = $(LIBS:%=-L lib%)
-LDLIBS = $(LIBS:%=-l%)
 
-vpath %.cpp ./ $(shell find $(SRCS_DIR) -type d)
-
+# Colors ans escape sequences
 ESC_SEQ = \033[
 BLUE = $(ESC_SEQ)34m
 YELLOW = $(ESC_SEQ)33m
 GREEN = $(ESC_SEQ)32m
 BOLD = $(ESC_SEQ)1m
-NO_BOLD = $(ESC_SEQ)21m
 MOVE_UP = $(ESC_SEQ)1A
 ERASE = \r$(ESC_SEQ)K
 ERASE_ALL = $(ESC_SEQ)M
 ESC_STOP = $(ESC_SEQ)0m
 
+# Variables used for cosmetic purposes
 COMPILING_PRINTED = 0
 VARIABLES_PRINTED = 0
 VARIABLES_INTERLINE_PRINTED = 0
 PRINT_INTERLINE = printf '$(YELLOW)$(BOLD)================================================================================$(ESC_STOP)\n'
-PROGRESS_BAR = ----------------------------------------
-FULL_BAR = ========================================
-NB_BAR = 0
 
-NB_FILES = $(words $(SRCS))
-NB = 1
+# Prevents the Makefile from recursively calling itself infinitely
+# See $(OBJS) rule
+NO_RECURS = 0
+
+# Draw a progress bar during while compiling the sources.
+NUM_FILE_BEING_COMPILED = 1
+define DRAW_PROGRESS_BAR
+	PROGRESS_BAR=$(PROGRESS_BAR) \
+	SIZE=$${#PROGRESS_BAR} \
+	NB_BAR=`expr $(NUM_FILE_BEING_COMPILED) '*' $$SIZE / $(NB_FILES_TO_COMPILE)`; \
+	printf '$(ERASE)$(BLUE)[ $(PROGRESS_BAR)$(BOLD) ][ %d / %d ]\r[ $(ESC_STOP)' \
+		$(NUM_FILE_BEING_COMPILED) $(NB_FILES_TO_COMPILE); \
+	for N in `seq $$NB_BAR`; \
+		do printf '$(BOLD)$(BLUE)$(FILLING_CHAR)$(ESC_STOP)'; \
+	done
+endef
+
+vpath %.cpp ./ $(shell find $(SRCS_DIR) -type d)
 
 all: display_variables $(NAME)
 
-$(NAME): $(OBJS)
+$(NAME): $(OBJS) | display_variables
 	@$(PRINT_INTERLINE)
 	@printf '$(YELLOW)$(BOLD)linking object files$(ESC_STOP)\n'
 	@$(CXX) $(CXXFLAGS) $(OBJS) -o $(NAME) $(LDFLAGS) $(LDLIBS)
 	@$(PRINT_INTERLINE)
-	@printf '$(YELLOW)$(BOLD)%s$(NO_BOLD) built$(ESC_STOP)\n' '$@'
+	@printf '$(YELLOW)$(BOLD)%s$(ESC_STOP)$(YELLOW) built$(ESC_STOP)\n' '$@'
 	@$(PRINT_INTERLINE)
 
 $(OBJS): $(OBJS_DIR)/%.o: %.cpp $(OBJS_DIR)/debug$(DEBUG) $(OBJS_DIR)/sanitize$(SANITIZE) | $(OBJS_DIR)
+# This retrieves the number of files to be compiled / updated
+# The $(NO_RECURS) variable prevents an infinite loop
+ifeq ($(NO_RECURS), 0)
+	$(eval NB_FILES_TO_COMPILE ?= $(shell make NO_RECURS=1 --dry-run --debug=b | grep "does not\|Must remake" | grep -o "'.*\.o'" | sort | uniq | wc -l))
+endif
 	@if [ '$(COMPILING_PRINTED)' -eq '0' ]; then \
 		if [ '$(VARIABLES_INTERLINE_PRINTED)' -eq '0' ]; then \
 			$(PRINT_INTERLINE); \
@@ -93,17 +99,19 @@ $(OBJS): $(OBJS_DIR)/%.o: %.cpp $(OBJS_DIR)/debug$(DEBUG) $(OBJS_DIR)/sanitize$(
 		printf '$(BOLD)$(YELLOW)compiling sources$(ESC_STOP)\n'; \
 	fi; $(eval COMPILING_PRINTED = 1)
 	@printf '%s\n' $@
-	@$(eval NB_BAR = $(shell expr $(NB) '*' 40 / $(NB_FILES)))
-	@printf '$(ERASE)$(BLUE)$(PROGRESS_BAR) $(BOLD)[ %d / %d ]$(ESC_STOP)\r' $(NB) $(NB_FILES)
-	@for N in $(shell seq $(NB_BAR)); do printf '$(BOLD)$(BLUE)=$(ESC_STOP)'; done
+	@$(DRAW_PROGRESS_BAR)
 	@$(CXX) $(CXXFLAGS) $(INCLUDES_DIR:%=-I %) -c $< -o $@
 	@printf '$(ERASE)$(MOVE_UP)$(GREEN)%s$(ESC_STOP)\n' $@
-	@if [ '$(NB)' -eq '$(NB_FILES)' ]; then printf '$(ERASE)$(BOLD)$(BLUE)$(FULL_BAR) [ %d / %d ]$(ESC_STOP)\n' $(NB) $(NB_FILES); fi;
-	@$(eval NB = $(shell echo $$(($(NB) + 1))))
+	@if [ '$(NUM_FILE_BEING_COMPILED)' -eq '$(NB_FILES_TO_COMPILE)' ]; then \
+		$(DRAW_PROGRESS_BAR); \
+		printf '\n'; \
+	fi; $(eval NUM_FILE_BEING_COMPILED = $(shell echo $$(($(NUM_FILE_BEING_COMPILED) + 1))))
 
 $(OBJS_DIR):
 	@$(MKDIR) $@
 
+# This two files prevent make from recompiling if the actual and the previous
+# compilation was made using the -g3 and / or the -fsanitize=address
 $(OBJS_DIR)/debug$(DEBUG): | $(OBJS_DIR)
 	@$(RM) $(OBJS_DIR)/debug0 $(OBJS_DIR)/debug1
 	@touch $@
