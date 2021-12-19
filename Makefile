@@ -6,7 +6,7 @@
 #    By: rotrojan <marvin@42.fr>                    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2021/10/21 21:06:11 by rotrojan          #+#    #+#              #
-#    Updated: 2021/12/18 23:48:45 by bigo             ###   ########.fr        #
+#    Updated: 2021/12/19 02:42:46 by bigo             ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -53,17 +53,27 @@ LDLIBS = $(LIBS:%=-l%)
 
 vpath %.cpp ./ $(shell find $(SRCS_DIR) -type d)
 
-YELLOW = \033[33m
-GREEN = \033[32m
-BOLD = \033[1m
-NO_BOLD = \033[21m
-ERASE = \r\033[K
-ESC_STOP = \033[0m
+ESC_SEQ = \033[
+BLUE = $(ESC_SEQ)34m
+YELLOW = $(ESC_SEQ)33m
+GREEN = $(ESC_SEQ)32m
+BOLD = $(ESC_SEQ)1m
+NO_BOLD = $(ESC_SEQ)21m
+MOVE_UP = $(ESC_SEQ)1A
+ERASE = \r$(ESC_SEQ)K
+ERASE_ALL = $(ESC_SEQ)M
+ESC_STOP = $(ESC_SEQ)0m
 
 COMPILING_PRINTED = 0
 VARIABLES_PRINTED = 0
 VARIABLES_INTERLINE_PRINTED = 0
 PRINT_INTERLINE = printf '$(YELLOW)$(BOLD)================================================================================$(ESC_STOP)\n'
+PROGRESS_BAR = ----------------------------------------
+FULL_BAR = ========================================
+NB_BAR = 0
+
+NB_FILES = $(words $(SRCS))
+NB = 1
 
 all: display_variables $(NAME)
 
@@ -82,25 +92,30 @@ $(OBJS): $(OBJS_DIR)/%.o: %.cpp $(OBJS_DIR)/debug$(DEBUG) $(OBJS_DIR)/sanitize$(
 		fi; \
 		printf '$(BOLD)$(YELLOW)compiling sources$(ESC_STOP)\n'; \
 	fi; $(eval COMPILING_PRINTED = 1)
-	@printf '%s' $@
+	@printf '%s\n' $@
+	@$(eval NB_BAR = $(shell expr $(NB) '*' 40 / $(NB_FILES)))
+	@printf '$(ERASE)$(BLUE)$(PROGRESS_BAR) $(BOLD)[ %d / %d ]$(ESC_STOP)\r' $(NB) $(NB_FILES)
+	@for N in $(shell seq $(NB_BAR)); do printf '$(BOLD)$(BLUE)=$(ESC_STOP)'; done
 	@$(CXX) $(CXXFLAGS) $(INCLUDES_DIR:%=-I %) -c $< -o $@
-	@printf '$(ERASE)$(GREEN)%s$(ESC_STOP)\n' $@
+	@printf '$(ERASE)$(MOVE_UP)$(GREEN)%s$(ESC_STOP)\n' $@
+	@if [ '$(NB)' -eq '$(NB_FILES)' ]; then printf '$(ERASE)$(BOLD)$(BLUE)$(FULL_BAR) [ %d / %d ]$(ESC_STOP)\n' $(NB) $(NB_FILES); fi;
+	@$(eval NB = $(shell echo $$(($(NB) + 1))))
 
 $(OBJS_DIR):
 	@$(MKDIR) $@
 
 $(OBJS_DIR)/debug$(DEBUG): | $(OBJS_DIR)
-	@$(RM) $(OBJS_DIR)/debug*
+	@$(RM) $(OBJS_DIR)/debug0 $(OBJS_DIR)/debug1
 	@touch $@
 
 $(OBJS_DIR)/sanitize$(SANITIZE): | $(OBJS_DIR)
-	@$(RM) $(OBJS_DIR)/sanitize*
+	@$(RM) $(OBJS_DIR)/sanitize0 $(OBJS_DIR)/sanitize1
 	@touch $@
 
 display_variables:
 	@if [ '$(VARIABLES_PRINTED)' -eq '0' ]; then \
 		$(PRINT_INTERLINE); \
-		printf '$(YELLOW)building $(BOLD)%s$(ESC_STOP)\n' '$(NAME)'; \
+		printf '$(YELLOW)executable name: $(BOLD)%s$(ESC_STOP)\n' '$(NAME)'; \
 		printf '$(YELLOW)compiler:$(ESC_STOP) %s\n' '$(CXX)'; \
 		printf '$(YELLOW)compilation flags:$(ESC_STOP) %s\n' '$(CXXFLAGS)'; \
 		printf '$(YELLOW)libraries:$(ESC_STOP) %s\n' '$(LIBS)'; \
