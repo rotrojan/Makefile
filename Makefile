@@ -6,7 +6,7 @@
 #    By: rotrojan <marvin@42.fr>                    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2021/10/21 21:06:11 by rotrojan          #+#    #+#              #
-#    Updated: 2021/12/20 00:13:13 by bigo             ###   ########.fr        #
+#    Updated: 2021/12/20 21:54:35 by bigo             ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -133,7 +133,7 @@ display_variables:
 
 clean:
 	@$(RM) -r $(OBJS_DIR)
-	@printf '%s removed\n' '$(OBJS_DIR)'
+	@printf '%s\ removed\n' '$(OBJS_DIR)'
 
 fclean: clean
 	@$(RM) $(NAME) $(BONUS)
