@@ -6,7 +6,7 @@
 #    By: rotrojan <marvin@42.fr>                    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2021/10/21 21:06:11 by rotrojan          #+#    #+#              #
-#    Updated: 2022/02/15 13:26:24 by rotrojan         ###   ########.fr        #
+#    Updated: 2022/02/15 14:18:51 by rotrojan         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -55,7 +55,10 @@ ESC_STOP = $(ESC_SEQ)0m
 COMPILING_PRINTED = 0
 VARIABLES_PRINTED = 0
 VARIABLES_INTERLINE_PRINTED = 0
-PRINT_INTERLINE = printf '$(YELLOW)$(BOLD)================================================================================$(ESC_STOP)\n'
+PRINT_INTERLINE = printf '$(YELLOW)$(BOLD)' 1>&2 \
+	&& printf '================================================================================' \
+	&& printf '$(ESC_STOP)' 1>&2 \
+	&& printf '\n'
 
 # Prevents the Makefile from recursively calling itself infinitely
 # See $(OBJS) rule
@@ -67,10 +70,13 @@ define DRAW_PROGRESS_BAR
 	PROGRESS_BAR=$(PROGRESS_BAR) \
 	SIZE=$${#PROGRESS_BAR} \
 	NB_BAR=`expr $(NUM_FILE_BEING_COMPILED) '*' $$SIZE / $(NB_FILES_TO_COMPILE)`; \
-	printf '$(ERASE)$(BLUE)[ $(PROGRESS_BAR)$(BOLD) ][ %d / %d ]\r[ $(ESC_STOP)' \
-		$(NUM_FILE_BEING_COMPILED) $(NB_FILES_TO_COMPILE); \
+	printf '$(ERASE)$(BLUE)' 1>&2 \
+		&& printf '[ $(PROGRESS_BAR)' \
+		&& printf '$(BOLD)' 1>&2 \
+		&& printf '  ][ %d / %d ]\r[ ' $(NUM_FILE_BEING_COMPILED) $(NB_FILES_TO_COMPILE) \
+		&& printf '$(ESC_STOP)' 1>&2; \
 	for N in `seq $$NB_BAR`; \
-		do printf '$(BOLD)$(BLUE)$(FILLING_CHAR)$(ESC_STOP)'; \
+		do printf '$(BOLD)$(BLUE)$(FILLING_CHAR)$(ESC_STOP)' 1>&2; \
 	done
 endef
 
@@ -80,10 +86,18 @@ all: display_variables $(NAME)
 
 $(NAME): $(OBJS) | display_variables
 	@$(PRINT_INTERLINE)
-	@printf '$(YELLOW)$(BOLD)linking object files$(ESC_STOP)\n'
+	@printf '$(YELLOW)$(BOLD)' 1>&2 \
+		&& printf 'linking object files' \
+		&& printf '$(ESC_STOP)' 1>&2 \
+		&& printf '\n'
 	@$(CXX) $(CXXFLAGS) $(OBJS) -o $(NAME) $(LDFLAGS) $(LDLIBS)
 	@$(PRINT_INTERLINE)
-	@printf '$(YELLOW)$(BOLD)%s$(ESC_STOP)$(YELLOW) built$(ESC_STOP)\n' '$@'
+	@printf '$(YELLOW)$(BOLD)' 1>&2 \
+		&& printf '%s' '$@' \
+		&& printf '$(ESC_STOP)$(YELLOW)' 1>&2 \
+		&& printf ' built' \
+		&& printf '$(ESC_STOP)' 1>&2 \
+		&& printf '\n'
 	@$(PRINT_INTERLINE)
 
 $(OBJS): $(OBJS_DIR)/%.o: %.cpp $(OBJS_DIR)/debug$(DEBUG) $(OBJS_DIR)/sanitize$(SANITIZE) | $(OBJS_DIR)
@@ -96,12 +110,18 @@ endif
 		if [ '$(VARIABLES_INTERLINE_PRINTED)' -eq '0' ]; then \
 			$(PRINT_INTERLINE); \
 		fi; \
-		printf '$(BOLD)$(YELLOW)compiling sources$(ESC_STOP)\n'; \
+		printf '$(BOLD)$(YELLOW)' 1>&2 \
+		printf 'compiling sources' \
+		printf '$(ESC_STOP)' 1>&2 \
+		printf '\n'; \
 	fi; $(eval COMPILING_PRINTED = 1)
 	@printf '%s\n' $@
 	@$(DRAW_PROGRESS_BAR)
 	@$(CXX) $(CXXFLAGS) $(INCLUDES_DIR:%=-I %) -c $< -o $@
-	@printf '$(ERASE)$(MOVE_UP)$(GREEN)%s$(ESC_STOP)\n' $@
+	@printf '$(ERASE)$(MOVE_UP)$(GREEN)' 1>&2 \
+		&& printf '%s' '$@' \
+		&& printf '$(ESC_STOP)' 1>&2 \
+		&& printf '\n'
 	@if [ '$(NUM_FILE_BEING_COMPILED)' -eq '$(NB_FILES_TO_COMPILE)' ]; then \
 		$(DRAW_PROGRESS_BAR); \
 		printf '\n'; \
@@ -123,17 +143,34 @@ $(OBJS_DIR)/sanitize$(SANITIZE): | $(OBJS_DIR)
 display_variables:
 	@if [ '$(VARIABLES_PRINTED)' -eq '0' ]; then \
 		$(PRINT_INTERLINE); \
-		printf '$(YELLOW)executable name: $(BOLD)%s$(ESC_STOP)\n' '$(NAME)'; \
-		printf '$(YELLOW)compiler:$(ESC_STOP) %s\n' '$(CXX)'; \
-		printf '$(YELLOW)compilation flags:$(ESC_STOP) %s\n' '$(CXXFLAGS)'; \
-		printf '$(YELLOW)libraries:$(ESC_STOP) %s\n' '$(LIBS)'; \
-		printf '$(YELLOW)linking flags:$(ESC_STOP) %s\n' '$(LDFLAGS)'; \
+		printf '$(YELLOW)' 1>&2 \
+			&& printf 'executable name: ' \
+			&& printf '$(BOLD)' 1>&2 \
+			&& printf '%s' '$(NAME)' \
+			&& printf '$(ESC_STOP)' 1>&2 \
+			&& printf '\n' ; \
+		printf '$(YELLOW)' 1>&2 \
+			&& printf 'compiler: ' \
+			&& printf '$(ESC_STOP)' 1>&2 \
+			&& printf '%s\n' '$(CXX)'; \
+		printf '$(YELLOW)' 1>&2 \
+			&& printf 'compilation flags: ' \
+			&& printf '$(ESC_STOP)' 1>&2 \
+			&& printf '%s\n' '$(CXXFLAGS)'; \
+		printf '$(YELLOW)' 1>&2 \
+			&& printf 'libraries: ' \
+			&& printf '$(ESC_STOP)' 1>&2 \
+			&& printf '%s\n' '$(LIBS)'; \
+		printf '$(YELLOW)' 1>&2 \
+			&& printf 'linking flags: ' \
+			&& printf '$(ESC_STOP)' 1>&2 \
+			&& printf '%s\n' '$(LDFLAGS)'; \
 		$(PRINT_INTERLINE); \
 	fi; $(eval VARIABLES_PRINTED = 1) $(eval VARIABLES_INTERLINE_PRINTED = 1)
 
 clean:
 	@$(RM) -r $(OBJS_DIR)
-	@printf '%s\ removed\n' '$(OBJS_DIR)'
+	@printf '%s/ removed\n' '$(OBJS_DIR)'
 
 fclean: clean
 	@$(RM) $(NAME) $(BONUS)
