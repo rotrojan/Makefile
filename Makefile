@@ -6,7 +6,7 @@
 #    By: rotrojan <marvin@42.fr>                    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2021/10/21 21:06:11 by rotrojan          #+#    #+#              #
-#    Updated: 2021/12/20 21:54:35 by bigo             ###   ########.fr        #
+#    Updated: 2022/02/15 13:26:24 by rotrojan         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -90,7 +90,7 @@ $(OBJS): $(OBJS_DIR)/%.o: %.cpp $(OBJS_DIR)/debug$(DEBUG) $(OBJS_DIR)/sanitize$(
 # This retrieves the number of files to be compiled / updated
 # The $(NO_RECURS) variable prevents an infinite loop
 ifeq ($(NO_RECURS), 0)
-	$(eval NB_FILES_TO_COMPILE ?= $(shell make NO_RECURS=1 --dry-run --debug=b | grep "does not\|Must remake" | grep -o "'.*\.o'" | sort | uniq | wc -l))
+	$(eval NB_FILES_TO_COMPILE ?= $(shell make NO_RECURS=1 --dry-run --debug=b | grep "does not\|Must remake" | grep -o "[\`'].*\.o'" | sort | uniq | wc -l))
 endif
 	@if [ '$(COMPILING_PRINTED)' -eq '0' ]; then \
 		if [ '$(VARIABLES_INTERLINE_PRINTED)' -eq '0' ]; then \
